@@ -283,9 +283,9 @@ export function judgeAnswers(state: QuizState): JudgmentResult {
   return { isCorrect, details };
 }
 
-// 優先度グループを構築する
-// 鎖: [1.1グループ, 1.2グループ, 1.3グループ]
-// 攻撃: [2.1グループ, 2.2グループ]
+// 優先度グループを構築する（スロット上限を考慮）
+// 鎖: [1.1グループ, 1.2グループ, 1.3グループ] 合計2枠
+// 攻撃: [2.1グループ, 2.2グループ] 合計4枠
 function buildPriorityGroups(
   members: MemberState[],
   type: "bind" | "attack",
@@ -293,6 +293,8 @@ function buildPriorityGroups(
 ): number[][] {
   const groups: number[][] = [];
   const assigned = new Set<number>();
+  const maxSlots = type === "bind" ? 2 : 4;
+  let remaining = maxSlots;
 
   // サークル（ファーストターゲット）をスキップ対象に
   for (const m of members) {
@@ -305,9 +307,11 @@ function buildPriorityGroups(
     // 1.1: セカンドターゲット かつ デュナミス2
     const group11: number[] = [];
     for (const m of members) {
+      if (remaining <= 0) break;
       if (m.helloWorld === "second" && m.dynamis === 2 && !assigned.has(m.index)) {
         group11.push(m.index);
         assigned.add(m.index);
+        remaining--;
       }
     }
     if (group11.length > 0) groups.push(group11);
@@ -315,9 +319,11 @@ function buildPriorityGroups(
     // 1.2: デュナミス2
     const group12: number[] = [];
     for (const m of members) {
+      if (remaining <= 0) break;
       if (m.dynamis === 2 && !assigned.has(m.index)) {
         group12.push(m.index);
         assigned.add(m.index);
+        remaining--;
       }
     }
     if (group12.length > 0) groups.push(group12);
@@ -325,9 +331,11 @@ function buildPriorityGroups(
     // 1.3: デュナミス1
     const group13: number[] = [];
     for (const m of members) {
+      if (remaining <= 0) break;
       if (m.dynamis === 1 && !assigned.has(m.index)) {
         group13.push(m.index);
         assigned.add(m.index);
+        remaining--;
       }
     }
     if (group13.length > 0) groups.push(group13);
@@ -342,9 +350,11 @@ function buildPriorityGroups(
     // 2.1: デュナミス2
     const group21: number[] = [];
     for (const m of members) {
+      if (remaining <= 0) break;
       if (m.dynamis === 2 && !assigned.has(m.index)) {
         group21.push(m.index);
         assigned.add(m.index);
+        remaining--;
       }
     }
     if (group21.length > 0) groups.push(group21);
@@ -352,9 +362,11 @@ function buildPriorityGroups(
     // 2.2: デュナミス1
     const group22: number[] = [];
     for (const m of members) {
+      if (remaining <= 0) break;
       if (m.dynamis === 1 && !assigned.has(m.index)) {
         group22.push(m.index);
         assigned.add(m.index);
+        remaining--;
       }
     }
     if (group22.length > 0) groups.push(group22);
