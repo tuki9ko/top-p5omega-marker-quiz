@@ -227,13 +227,6 @@ export function judgeAnswers(state: QuizState): JudgmentResult {
   const correctAnswers = calculateCorrectAnswers(state.members);
 
   // ユーザーの回答から、鎖と攻撃の付与順序を再構成
-  // 同じ優先度グループ内では順序不問なので、グループ単位で比較する
-
-  // まず正解の優先度グループを構築
-  const correctBindGroups = buildPriorityGroups(state.members, "bind", correctAnswers);
-  const correctAttackGroups = buildPriorityGroups(state.members, "attack", correctAnswers);
-
-  // ユーザーの鎖割り当てメンバー（順番に）
   const userBindMembers: number[] = [];
   const userAttackMembers: number[] = [];
 
@@ -248,13 +241,25 @@ export function judgeAnswers(state: QuizState): JudgmentResult {
     }
   }
 
-  // グループ単位で正誤判定
-  const bindCorrect = checkGroupOrder(userBindMembers, correctBindGroups);
-  const attackCorrect = checkGroupOrder(userAttackMembers, correctAttackGroups);
+  // 優先度候補プール方式で判定
+  // 同じ優先度の候補からどれを選んでも正解、ただし優先度間の順序は厳密
+  const circleMembers = new Set(
+    state.members.filter((m) => m.helloWorld === "first").map((m) => m.index),
+  );
 
-  // サークルの判定（ファーストターゲットのサークルは判定に含めない）
-  // ファーストターゲット以外でサークルを押した人がいないことを確認
-  // → 実際にはファーストターゲットの人がサークルを押しているかは判定不要（要件0番）
+  const bindCorrect = checkWithPriorityPools(
+    userBindMembers,
+    buildCandidatePools(state.members, "bind", circleMembers, new Set()),
+    2,
+  );
+
+  // 鎖で選ばれたメンバーを除外して攻撃の判定
+  const bindAssigned = new Set(userBindMembers);
+  const attackCorrect = checkWithPriorityPools(
+    userAttackMembers,
+    buildCandidatePools(state.members, "attack", circleMembers, bindAssigned),
+    4,
+  );
 
   const isCorrect = bindCorrect && attackCorrect;
 
@@ -262,13 +267,13 @@ export function judgeAnswers(state: QuizState): JudgmentResult {
     const correct = correctAnswers.get(m.index) ?? null;
     const userMarker = m.assignedMarker;
 
-    // サークルマーカーは判定に含めない
+    // サークルマーカーは判定に含めない（要件: 0番のサークル付与は正誤判定対象外）
     if (correct === "circle" || userMarker === "circle") {
       return {
         memberIndex: m.index,
         userAnswer: userMarker,
         correctAnswer: correct,
-        isCorrect: true, // サークルは常にOK
+        isCorrect: true,
       };
     }
 
@@ -276,129 +281,87 @@ export function judgeAnswers(state: QuizState): JudgmentResult {
       memberIndex: m.index,
       userAnswer: userMarker,
       correctAnswer: correct,
-      isCorrect: isCorrect, // 全体の判定を使う（グループ順序で判定済み）
+      isCorrect,
     };
   });
 
   return { isCorrect, details };
 }
 
-// 優先度グループを構築する（スロット上限を考慮）
-// 鎖: [1.1グループ, 1.2グループ, 1.3グループ] 合計2枠
-// 攻撃: [2.1グループ, 2.2グループ] 合計4枠
-function buildPriorityGroups(
+// 優先度ごとの候補プールを構築（全候補を含む、スロット制限なし）
+// 各プールは「この優先度に該当する全メンバー」を持つ
+function buildCandidatePools(
   members: MemberState[],
   type: "bind" | "attack",
-  correctAnswers: Map<number, MarkerType>,
-): number[][] {
-  const groups: number[][] = [];
-  const assigned = new Set<number>();
-  const maxSlots = type === "bind" ? 2 : 4;
-  let remaining = maxSlots;
-
-  // サークル（ファーストターゲット）をスキップ対象に
-  for (const m of members) {
-    if (correctAnswers.get(m.index) === "circle") {
-      assigned.add(m.index);
-    }
-  }
+  circleMembers: Set<number>,
+  alreadyAssigned: Set<number>,
+): Set<number>[] {
+  const pools: Set<number>[] = [];
+  const excluded = new Set([...circleMembers, ...alreadyAssigned]);
 
   if (type === "bind") {
-    // 1.1: セカンドターゲット かつ デュナミス2
-    const group11: number[] = [];
+    // 1.1: セカンドターゲット かつ デュナミス2（最優先）
+    const pool11 = new Set<number>();
     for (const m of members) {
-      if (remaining <= 0) break;
-      if (m.helloWorld === "second" && m.dynamis === 2 && !assigned.has(m.index)) {
-        group11.push(m.index);
-        assigned.add(m.index);
-        remaining--;
+      if (m.helloWorld === "second" && m.dynamis === 2 && !excluded.has(m.index)) {
+        pool11.add(m.index);
       }
     }
-    if (group11.length > 0) groups.push(group11);
+    if (pool11.size > 0) pools.push(pool11);
 
-    // 1.2: デュナミス2
-    const group12: number[] = [];
+    // 1.2 + 1.3: デュナミス2（1.1除く）とデュナミス1を同一優先度として統合
+    const pool12_13 = new Set<number>();
     for (const m of members) {
-      if (remaining <= 0) break;
-      if (m.dynamis === 2 && !assigned.has(m.index)) {
-        group12.push(m.index);
-        assigned.add(m.index);
-        remaining--;
+      if (!excluded.has(m.index) && !pool11.has(m.index)) {
+        pool12_13.add(m.index);
       }
     }
-    if (group12.length > 0) groups.push(group12);
-
-    // 1.3: デュナミス1
-    const group13: number[] = [];
-    for (const m of members) {
-      if (remaining <= 0) break;
-      if (m.dynamis === 1 && !assigned.has(m.index)) {
-        group13.push(m.index);
-        assigned.add(m.index);
-        remaining--;
-      }
-    }
-    if (group13.length > 0) groups.push(group13);
+    if (pool12_13.size > 0) pools.push(pool12_13);
   } else {
-    // 鎖が既に割り当て済みのメンバーをスキップ対象に追加
-    for (const [idx, marker] of correctAnswers) {
-      if (marker.startsWith("bind")) {
-        assigned.add(idx);
-      }
-    }
-
-    // 2.1: デュナミス2
-    const group21: number[] = [];
+    // 2.1 + 2.2: デュナミス2とデュナミス1を同一優先度として統合
+    const pool21_22 = new Set<number>();
     for (const m of members) {
-      if (remaining <= 0) break;
-      if (m.dynamis === 2 && !assigned.has(m.index)) {
-        group21.push(m.index);
-        assigned.add(m.index);
-        remaining--;
+      if (!excluded.has(m.index)) {
+        pool21_22.add(m.index);
       }
     }
-    if (group21.length > 0) groups.push(group21);
-
-    // 2.2: デュナミス1
-    const group22: number[] = [];
-    for (const m of members) {
-      if (remaining <= 0) break;
-      if (m.dynamis === 1 && !assigned.has(m.index)) {
-        group22.push(m.index);
-        assigned.add(m.index);
-        remaining--;
-      }
-    }
-    if (group22.length > 0) groups.push(group22);
+    if (pool21_22.size > 0) pools.push(pool21_22);
   }
 
-  return groups;
+  return pools;
 }
 
-// グループ順序の判定: グループ内の順序は問わないが、グループ間の順序は厳密
-function checkGroupOrder(userOrder: number[], groups: number[][]): boolean {
+// 優先度候補プール方式の判定
+// 各プールから順に消費し、ユーザーの選択が正しい優先度順かチェック
+// - 高優先度プールの候補は低優先度より先に選ばれなければならない
+// - 同じプール内の候補はどの順序で選んでもOK
+function checkWithPriorityPools(
+  userOrder: number[],
+  pools: Set<number>[],
+  totalSlots: number,
+): boolean {
   let userIdx = 0;
+  let remaining = totalSlots;
 
-  for (const group of groups) {
-    const groupSet = new Set(group);
-    // このグループに属するメンバーが、連続してuserOrderに現れるか
-    const userSlice = userOrder.slice(userIdx, userIdx + group.length);
+  for (const pool of pools) {
+    if (remaining <= 0) break;
 
-    if (userSlice.length !== group.length) return false;
+    // このプールから消費する数: プールの候補数と残りスロットの小さい方
+    const consumeCount = Math.min(pool.size, remaining);
 
-    // グループ内のメンバーが全て含まれているか（順序は不問）
-    const userSliceSet = new Set(userSlice);
-    for (const member of groupSet) {
-      if (!userSliceSet.has(member)) return false;
+    // ユーザーの次の consumeCount 個のピックがすべてこのプールに含まれるか
+    const userSlice = userOrder.slice(userIdx, userIdx + consumeCount);
+    if (userSlice.length !== consumeCount) return false;
+
+    for (const pick of userSlice) {
+      if (!pool.has(pick)) return false;
     }
-    for (const member of userSliceSet) {
-      if (!groupSet.has(member)) return false;
-    }
 
-    userIdx += group.length;
+    userIdx += consumeCount;
+    remaining -= consumeCount;
   }
 
-  return true;
+  return remaining === 0;
 }
 
 // マーカー画像パスを取得
