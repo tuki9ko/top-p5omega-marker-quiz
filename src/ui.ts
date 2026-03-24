@@ -10,26 +10,79 @@ import {
 } from "./quiz-logic.ts";
 
 let currentState: QuizState;
+let quizStartTime: number = 0;
+let elapsedSeconds: number = 0;
+let timerInterval: ReturnType<typeof setInterval> | null = null;
+
+// タイマースコア定義
+interface TimerScore {
+  maxSeconds: number;
+  label: string;
+  comment: string;
+}
+
+const TIMER_SCORES: TimerScore[] = [
+  { maxSeconds: 4, label: "ツーラーレベル", comment: "早すぎ。もしかして見えてる君ですか？" },
+  { maxSeconds: 6, label: "即答レベル", comment: "判断が早い！" },
+  { maxSeconds: 15, label: "MF範囲1回目着弾前", comment: "MF範囲避け大丈夫？" },
+  { maxSeconds: 18, label: "MF範囲2回目着弾前", comment: "これくらいがベストだよね" },
+  { maxSeconds: 22, label: "検知前", comment: "これくらいがちょうどいいかもね" },
+  { maxSeconds: 25, label: "検知出現後", comment: "これ以上遅れると大変だよ？" },
+  { maxSeconds: Infinity, label: "検知出現後しばらく", comment: "間に合わないかも……" },
+];
+
+function getTimerScore(seconds: number): TimerScore {
+  for (const score of TIMER_SCORES) {
+    if (seconds <= score.maxSeconds) return score;
+  }
+  return TIMER_SCORES[TIMER_SCORES.length - 1];
+}
+
+function startTimer(): void {
+  stopTimer();
+  quizStartTime = performance.now();
+  timerInterval = setInterval(updateTimerDisplay, 100);
+}
+
+function stopTimer(): void {
+  if (timerInterval !== null) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function updateTimerDisplay(): void {
+  const timerEl = document.querySelector<HTMLDivElement>(".timer-display");
+  if (timerEl) {
+    const elapsed = (performance.now() - quizStartTime) / 1000;
+    timerEl.textContent = `${elapsed.toFixed(1)}s`;
+  }
+}
+
+function startNewQuiz(): void {
+  currentState = generateQuiz();
+  startTimer();
+  render();
+}
 
 // パーティリスト画像内のジョブアイコン位置（%）
 // ジョブアイコンは画像の左端から約 5-15% の位置
-const JOB_ICON_LEFT_PERCENT = 5;
+const JOB_ICON_LEFT_PERCENT = 3;
 // 各メンバー行の中心Y位置（%） - ジョブアイコンの中心
 const MEMBER_ROW_CENTERS = [
-  12.5, // メンバー0
-  23.0, // メンバー1
-  33.5, // メンバー2
-  44.0, // メンバー3
-  54.5, // メンバー4
-  65.0, // メンバー5
-  75.5, // メンバー6
-  86.0, // メンバー7
+  8.5, // メンバー0
+  19.5, // メンバー1
+  30.5, // メンバー2
+  41.5, // メンバー3
+  52.0, // メンバー4
+  63.0, // メンバー5
+  74.0, // メンバー6
+  85.0, // メンバー7
 ];
 const MARKER_SIZE_PERCENT = 8;
 
 export function initUI(): void {
-  currentState = generateQuiz();
-  render();
+  startNewQuiz();
 }
 
 function render(): void {
@@ -172,6 +225,12 @@ function render(): void {
   container.appendChild(buttonArea);
 
   if (currentState.phase === "playing") {
+    // タイマー表示
+    const timerDisplay = document.createElement("div");
+    timerDisplay.className = "timer-display";
+    timerDisplay.textContent = "0.0s";
+    buttonArea.appendChild(timerDisplay);
+
     // リセットボタン
     const resetBtn = document.createElement("button");
     resetBtn.textContent = "リセット";
@@ -182,6 +241,15 @@ function render(): void {
     });
     buttonArea.appendChild(resetBtn);
 
+    // 次の問題ボタン（スキップ）
+    const skipBtn = document.createElement("button");
+    skipBtn.textContent = "スキップ";
+    skipBtn.className = "btn btn-skip";
+    skipBtn.addEventListener("click", () => {
+      startNewQuiz();
+    });
+    buttonArea.appendChild(skipBtn);
+
     // ステータス表示
     const status = document.createElement("div");
     status.className = "status-text";
@@ -189,6 +257,10 @@ function render(): void {
     status.textContent = `割り当て: ${assignedCount} / 8`;
     buttonArea.appendChild(status);
   } else {
+    // 回答完了時の経過時間を記録
+    stopTimer();
+    elapsedSeconds = (performance.now() - quizStartTime) / 1000;
+
     // 結果表示
     renderResult(container);
 
@@ -197,8 +269,7 @@ function render(): void {
     nextBtn.textContent = "次の問題";
     nextBtn.className = "btn btn-next";
     nextBtn.addEventListener("click", () => {
-      currentState = generateQuiz();
-      render();
+      startNewQuiz();
     });
     buttonArea.appendChild(nextBtn);
   }
@@ -236,6 +307,30 @@ function renderResult(container: HTMLElement): void {
   resultTitle.textContent = result.isCorrect ? "正解！" : "不正解…";
   resultTitle.className = "result-title";
   resultDiv.appendChild(resultTitle);
+
+  // タイムとスコア表示
+  const timeDisplay = document.createElement("div");
+  timeDisplay.className = "result-time";
+  timeDisplay.textContent = `タイム: ${elapsedSeconds.toFixed(1)}秒`;
+  resultDiv.appendChild(timeDisplay);
+
+  if (result.isCorrect) {
+    const score = getTimerScore(elapsedSeconds);
+    const scoreDiv = document.createElement("div");
+    scoreDiv.className = "result-score";
+
+    const scoreLabel = document.createElement("div");
+    scoreLabel.className = "result-score-label";
+    scoreLabel.textContent = score.label;
+    scoreDiv.appendChild(scoreLabel);
+
+    const scoreComment = document.createElement("div");
+    scoreComment.className = "result-score-comment";
+    scoreComment.textContent = score.comment;
+    scoreDiv.appendChild(scoreComment);
+
+    resultDiv.appendChild(scoreDiv);
+  }
 
   if (!result.isCorrect) {
     const explanation = document.createElement("p");

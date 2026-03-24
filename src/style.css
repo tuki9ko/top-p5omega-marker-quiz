@@ -238,6 +238,25 @@ body {
   background: #d63050;
 }
 
+.btn-skip {
+  background: #2a5a3a;
+  color: #fff;
+}
+
+.btn-skip:hover {
+  background: #3a7a4a;
+}
+
+/* タイマー表示 */
+.timer-display {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: ui-monospace, Consolas, monospace;
+  color: #ffd700;
+  min-width: 60px;
+  text-align: center;
+}
+
 .status-text {
   font-size: 14px;
   color: var(--text-muted);
@@ -274,6 +293,35 @@ body {
 
 .incorrect .result-title {
   color: var(--accent-incorrect);
+}
+
+.result-time {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: ui-monospace, Consolas, monospace;
+  text-align: center;
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.result-score {
+  text-align: center;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: rgba(255, 215, 0, 0.08);
+  border-radius: 6px;
+}
+
+.result-score-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffd700;
+  margin-bottom: 4px;
+}
+
+.result-score-comment {
+  font-size: 14px;
+  color: var(--text);
 }
 
 .result-explanation {
