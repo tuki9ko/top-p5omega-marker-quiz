@@ -11,20 +11,21 @@ import {
 
 let currentState: QuizState;
 
-// パーティリスト画像内の各メンバー行の相対的な位置（%）
-// PartyList.png の構造: ヘッダー + 8メンバー行 + ペット行
-// 画像を実測して調整
-const MEMBER_ROW_TOPS = [
-  10.5, // メンバー0
-  21.5, // メンバー1
-  32.5, // メンバー2
-  43.5, // メンバー3
+// パーティリスト画像内のジョブアイコン位置（%）
+// ジョブアイコンは画像の左端から約 5-15% の位置
+const JOB_ICON_LEFT_PERCENT = 5;
+// 各メンバー行の中心Y位置（%） - ジョブアイコンの中心
+const MEMBER_ROW_CENTERS = [
+  12.5, // メンバー0
+  23.0, // メンバー1
+  33.5, // メンバー2
+  44.0, // メンバー3
   54.5, // メンバー4
   65.0, // メンバー5
   75.5, // メンバー6
   86.0, // メンバー7
 ];
-const ROW_HEIGHT_PERCENT = 10.5;
+const MARKER_SIZE_PERCENT = 8;
 
 export function initUI(): void {
   currentState = generateQuiz();
@@ -83,6 +84,15 @@ function render(): void {
   buffsCol.className = "buffs-column";
   wrapper.appendChild(buffsCol);
 
+  // ヘッダー分のスペーサー（flex比率でヘッダー高さを確保）
+  const markerTopSpacer = document.createElement("div");
+  markerTopSpacer.className = "column-spacer-top";
+  markersCol.appendChild(markerTopSpacer);
+
+  const buffTopSpacer = document.createElement("div");
+  buffTopSpacer.className = "column-spacer-top";
+  buffsCol.appendChild(buffTopSpacer);
+
   // 各メンバーの行を生成
   for (let i = 0; i < 8; i++) {
     const member = currentState.members[i];
@@ -111,13 +121,15 @@ function render(): void {
       buttonRow.appendChild(assigned);
     }
 
-    // 頭上マーカーオーバーレイ
+    // 頭上マーカーオーバーレイ（ジョブアイコンの上に表示）
     if (member.assignedMarker !== null && member.assignedMarker !== "circle") {
       const markerIcon = document.createElement("img");
       markerIcon.src = getMarkerImagePath(member.assignedMarker);
       markerIcon.className = "head-marker";
-      markerIcon.style.top = `${MEMBER_ROW_TOPS[i]}%`;
-      markerIcon.style.height = `${ROW_HEIGHT_PERCENT}%`;
+      const centerY = MEMBER_ROW_CENTERS[i];
+      markerIcon.style.top = `${centerY - MARKER_SIZE_PERCENT / 2}%`;
+      markerIcon.style.left = `${JOB_ICON_LEFT_PERCENT}%`;
+      markerIcon.style.height = `${MARKER_SIZE_PERCENT}%`;
       markerOverlay.appendChild(markerIcon);
     }
 
@@ -144,6 +156,15 @@ function render(): void {
       buffRow.appendChild(hwImg);
     }
   }
+
+  // ペット行分のスペーサー
+  const markerBottomSpacer = document.createElement("div");
+  markerBottomSpacer.className = "column-spacer-bottom";
+  markersCol.appendChild(markerBottomSpacer);
+
+  const buffBottomSpacer = document.createElement("div");
+  buffBottomSpacer.className = "column-spacer-buff-bottom";
+  buffsCol.appendChild(buffBottomSpacer);
 
   // ボタンエリア
   const buttonArea = document.createElement("div");

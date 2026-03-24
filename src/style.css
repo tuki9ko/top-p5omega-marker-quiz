@@ -2,12 +2,14 @@
   --bg: #1a1a2e;
   --bg-card: #16213e;
   --bg-button: #0f3460;
+  --bg-button-hover: #1a5a90;
   --text: #e0e0e0;
   --text-muted: #8892a4;
   --accent: #e94560;
   --accent-correct: #4ecca3;
   --accent-incorrect: #e94560;
   --border: #2a2a4a;
+  --border-btn: #4a6a9a;
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 
   font-family: "Segoe UI", system-ui, sans-serif;
@@ -65,50 +67,69 @@ body {
 .party-list-wrapper {
   display: flex;
   align-items: stretch;
-  gap: 6px;
+  gap: 4px;
   width: 100%;
-  max-width: 600px;
+  max-width: 650px;
 }
 
-/* マーカーボタン列 */
-.markers-column {
+/* 列共通: flexで縦並び、spacerで位置合わせ */
+.markers-column,
+.buffs-column {
   display: flex;
   flex-direction: column;
-  /* ヘッダー分のパディング */
-  padding-top: 9%;
-  padding-bottom: 7.5%;
   gap: 0;
   flex-shrink: 0;
-  justify-content: space-between;
 }
 
+/* ヘッダー・ペット行に対応するスペーサー */
+/* 画像の比率: ヘッダー≒0.7行分、メンバー8行、ペット≒1.1行分 */
+.column-spacer-top {
+  flex: 0.3;
+}
+
+.column-spacer-bottom {
+  flex: 0.9;
+}
+
+.column-spacer-buff-bottom {
+  flex: 1.1;
+}
+
+/* マーカーボタン行 */
 .marker-button-row {
   display: flex;
   align-items: center;
-  gap: 2px;
-  min-height: 32px;
+  justify-content: flex-end;
+  gap: 3px;
   flex: 1;
 }
 
 .marker-btn {
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--border-btn);
+  border-radius: 6px;
   background: var(--bg-button);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2px;
+  padding: 3px;
   transition:
     background 0.15s,
-    transform 0.1s;
+    border-color 0.15s,
+    transform 0.1s,
+    box-shadow 0.15s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .marker-btn:hover {
-  background: #1a4a80;
-  transform: scale(1.1);
+  background: var(--bg-button-hover);
+  border-color: #6a9ad0;
+  transform: scale(1.12);
+  box-shadow:
+    0 0 8px rgba(100, 160, 255, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 .marker-btn:active {
@@ -116,14 +137,14 @@ body {
 }
 
 .marker-btn img {
-  width: 22px;
-  height: 22px;
+  width: 38px;
+  height: 38px;
   object-fit: contain;
 }
 
 .marker-assigned {
-  width: 96px;
-  height: 30px;
+  width: 120px;
+  height: 38px;
 }
 
 /* パーティリスト画像 */
@@ -152,36 +173,26 @@ body {
 
 .head-marker {
   position: absolute;
-  left: 2%;
   width: auto;
   object-fit: contain;
-  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.7));
+  z-index: 1;
 }
 
-/* バフデバフ列 */
-.buffs-column {
-  display: flex;
-  flex-direction: column;
-  padding-top: 9%;
-  padding-bottom: 7.5%;
-  gap: 0;
-  flex-shrink: 0;
-  justify-content: space-between;
-}
-
+/* バフデバフ行 */
 .buff-row {
   display: flex;
-  align-items: center;
-  gap: 2px;
-  min-height: 32px;
+  align-items: flex-end;
+  gap: 3px;
   flex: 1;
+  padding-bottom: 14px;
 }
 
 .buff-icon {
-  width: 28px;
-  height: 28px;
+  width: 46px;
+  height: 46px;
   object-fit: contain;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.6));
 }
 
 /* ボタンエリア */
@@ -322,22 +333,22 @@ body {
   }
 
   .marker-btn {
-    width: 26px;
-    height: 26px;
+    width: 32px;
+    height: 32px;
   }
 
   .marker-btn img {
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
   }
 
   .marker-assigned {
-    width: 82px;
+    width: 102px;
   }
 
   .buff-icon {
-    width: 24px;
-    height: 24px;
+    width: 30px;
+    height: 30px;
   }
 
   .result-row {
@@ -351,21 +362,21 @@ body {
 
 @media (max-width: 400px) {
   .marker-btn {
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
   }
 
   .marker-btn img {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
   }
 
   .marker-assigned {
-    width: 70px;
+    width: 90px;
   }
 
   .buff-icon {
-    width: 20px;
-    height: 20px;
+    width: 26px;
+    height: 26px;
   }
 }
