@@ -13,6 +13,8 @@ const JOB_ICON_LEFT_PERCENT = 3;
 const MEMBER_ROW_CENTERS = [8.5, 19.5, 30.5, 41.5, 52.0, 63.0, 74.0, 85.0];
 const MARKER_SIZE_PERCENT = 8;
 
+const base = import.meta.env.BASE_URL;
+
 export function App() {
   const [quizState, setQuizState] = useState<QuizState>(() => generateQuiz());
   const [timerResetKey, setTimerResetKey] = useState(0);
@@ -88,19 +90,19 @@ export function App() {
                       className="marker-btn marker-btn-circle"
                       onClick={() => handleAssignMarker(i, "circle")}
                     >
-                      <img src="/images/Marker_Circle.png" alt="circle" />
+                      <img src={`${base}images/Marker_Circle.png`} alt="circle" />
                     </button>
                     <button
                       className="marker-btn marker-btn-attack"
                       onClick={() => handleAssignMarker(i, "attack")}
                     >
-                      <img src="/images/Marker_Attack1.png" alt="attack" />
+                      <img src={`${base}images/Marker_Attack1.png`} alt="attack" />
                     </button>
                     <button
                       className="marker-btn marker-btn-bind"
                       onClick={() => handleAssignMarker(i, "bind")}
                     >
-                      <img src="/images/Marker_Bind1.png" alt="bind" />
+                      <img src={`${base}images/Marker_Bind1.png`} alt="bind" />
                     </button>
                   </>
                 ) : member.assignedMarker !== null ? (
@@ -113,7 +115,7 @@ export function App() {
 
           {/* 中央: パーティリスト画像 */}
           <div className="party-list-image-container">
-            <img src="/images/PartyList.png" alt="パーティリスト" className="party-list-image" />
+            <img src={`${base}images/PartyList.png`} alt="パーティリスト" className="party-list-image" />
             <div className="marker-overlay">
               {quizState.members.map((member, i) => {
                 if (member.assignedMarker === null || member.assignedMarker === "circle")
@@ -142,7 +144,7 @@ export function App() {
               <div key={i} className="buff-row">
                 <img
                   src={
-                    member.dynamis === 1 ? "/images/Buff_Dynamis1.png" : "/images/Buff_Dynamis2.png"
+                    member.dynamis === 1 ? `${base}images/Buff_Dynamis1.png` : `${base}images/Buff_Dynamis2.png`
                   }
                   alt={`デュナミス${member.dynamis}`}
                   className="buff-icon"
@@ -151,8 +153,8 @@ export function App() {
                   <img
                     src={
                       member.helloWorld === "first"
-                        ? "/images/Debuff_Target1.png"
-                        : "/images/Debuff_Target2.png"
+                        ? `${base}images/Debuff_Target1.png`
+                        : `${base}images/Debuff_Target2.png`
                     }
                     alt={
                       member.helloWorld === "first" ? "ファーストターゲット" : "セカンドターゲット"

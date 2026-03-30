@@ -366,14 +366,15 @@ function checkWithPriorityPools(
 
 // マーカー画像パスを取得
 export function getMarkerImagePath(marker: MarkerType): string {
+  const base = import.meta.env.BASE_URL;
   const map: Record<MarkerType, string> = {
-    circle: "/images/Marker_Circle.png",
-    attack1: "/images/Marker_Attack1.png",
-    attack2: "/images/Marker_Attack2.png",
-    attack3: "/images/Marker_Attack3.png",
-    attack4: "/images/Marker_Attack4.png",
-    bind1: "/images/Marker_Bind1.png",
-    bind2: "/images/Marker_Bind2.png",
+    circle: `${base}images/Marker_Circle.png`,
+    attack1: `${base}images/Marker_Attack1.png`,
+    attack2: `${base}images/Marker_Attack2.png`,
+    attack3: `${base}images/Marker_Attack3.png`,
+    attack4: `${base}images/Marker_Attack4.png`,
+    bind1: `${base}images/Marker_Bind1.png`,
+    bind2: `${base}images/Marker_Bind2.png`,
   };
   return map[marker];
 }
